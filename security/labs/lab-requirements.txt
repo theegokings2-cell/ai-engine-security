@@ -1,0 +1,29 @@
+# Security Lab Requirements
+# Version: 1.0.0
+
+# Core Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# SAST Scanning
+bandit>=1.7.5
+bandit-sarif-formatter>=1.1.0
+semgrep>=1.40.0
+
+# Dependency Scanning
+safety>=2.3.5
+pip-audit>=2.6.0
+
+# Secret Scanning
+trufflehog>=3.63.0
+
+# LLM Security
+bleach>=6.0.0
+
+# API Testing
+httpx>=0.25.0
+respx>=0.20.0
+
+# Utilities
+python-dotenv>=1.0.0
+PyYAML>=6.0.1

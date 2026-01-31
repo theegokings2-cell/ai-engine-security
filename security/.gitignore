@@ -1,0 +1,30 @@
+# Security Framework - Git Ignore
+# Do not commit sensitive files
+
+# SARIF scan results
+*.sarif
+sarif-results/
+security-scan-results/
+
+# Lab outputs
+labs/output/
+labs/*.json
+labs/*.html
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets (if any slip through)
+.env
+*.pem
+*.key
+*.crt

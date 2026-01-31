@@ -1,0 +1,122 @@
+# Dependabot Configuration for Security
+# Version: 1.0.0
+
+version: 2
+updates:
+  # Enable version updates for dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "00:00"
+      timezone: "UTC"
+    # Group related updates together
+    groups:
+      # Security updates - always high priority
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+      
+      # Major framework upgrades
+      major-updates:
+        applies-to: version-updates
+        patterns:
+          - "fastapi"
+          - "sqlalchemy"
+          - "pydantic"
+        update-types:
+          - "major"
+      
+      # Development tools
+      dev-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "pytest*"
+          - "black"
+          - "ruff"
+          - "mypy"
+        update-types:
+          - "minor"
+          - "patch"
+    
+    # Ignore specific versions if needed
+    ignore: []
+    #  - dependency-name: "some-package"
+    #    versions: ["1.0.0", "2.0.0"]
+    
+    # Open pull requests with these labels
+    labels:
+      - "dependencies"
+      - "security"
+    
+    # Assign reviewers
+    reviewers:
+      - security-team
+    
+    # Commit message prefix
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    
+    # Allow these capabilities
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    
+    # Automatically rebase conflicting PRs
+    rebase-strategy: "auto"
+    
+    # Target branch (always merge to main)
+    target-branch: "main"
+    
+    # Label PRs with security severity for Critical/High
+    labels: |
+      dependencies
+      {% if vulnerability == "critical" or vulnerability == "high" %}
+      security-critical
+      {% endif %}
+
+  # GitHub Actions security
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    groups:
+      github-actions-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+    
+    # Security updates for GitHub Actions
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+# Security advisories configuration
+vulnerability-alerts:
+  enabled: true
+  # Labels for vulnerability alert PRs
+  labels:
+    - "security"
+    - "vulnerability"
+  # Ignore false positives
+  ignore: []
+    # - GHSA-xxxx-xxxx-xxxx
+
+# Dependency review configuration
+dependency-review:
+  enabled: true
+  # Comment on pull requests
+  comment-summary-in-pr: always
+  # Fail on critical vulnerabilities
+  fail-on-severity: critical
+  # Allow warning severities
+  permit-licenses: "warning"
