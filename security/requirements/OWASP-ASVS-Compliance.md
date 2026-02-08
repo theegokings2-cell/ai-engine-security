@@ -13,7 +13,7 @@
 
 | Req ID | Requirement | Priority | Status |
 |--------|-------------|----------|--------|
-| ARC-01 | Multi-factor authentication (MFA) for all admin accounts | P0 | TODO |
+| ARC-01 | Multi-factor authentication (MFA) for all admin accounts | P0 | 📅 Planned (defer to launch) |
 | ARC-02 | Session tokens must be cryptographically secure (256-bit min) | P0 | ✅ |
 | ARC-03 | Session invalidation on password change | P0 | TODO |
 | ARC-04 | Account lockout after 5 failed attempts (15 min lockout) | P0 | TODO |
@@ -24,7 +24,7 @@
 | Req ID | Requirement | Priority | Status |
 |--------|-------------|----------|--------|
 | TEN-01 | Strict tenant_id scoping on ALL database queries | P0 | ✅ |
-| TEN-02 | Row-Level Security (RLS) enforced at database level | P0 | TODO |
+| TEN-02 | Row-Level Security (RLS) enforced at database level | P0 | 🔄 In Progress (SQL migration: `migrations/rls_setup.sql`) |
 | TEN-03 | Tenant context validation on every API request | P0 | ✅ |
 | TEN-04 | Cross-tenant data access = Critical Incident | P0 | Policy |
 

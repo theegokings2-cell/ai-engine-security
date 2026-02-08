@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Application
     APP_ENV: str = Field(default="development", alias="APP_ENV")
     DEBUG: bool = Field(default=False, alias="DEBUG")
-    SECRET_KEY: str = Field(default="change-me-in-production", alias="SECRET_KEY")
+    SECRET_KEY: str = Field(default=None, alias="SECRET_KEY")  # Must be set in production
     
     # Database
     DATABASE_URL: str = Field(
@@ -37,9 +37,9 @@ class Settings(BaseSettings):
     )
     
     # JWT
-    JWT_SECRET_KEY: str = Field(default="your-jwt-secret-key", alias="JWT_SECRET_KEY")
-    JWT_ALGORITHM: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    JWT_SECRET_KEY: str = Field(default=None, alias="JWT_SECRET_KEY")  # Must be set in production
+    JWT_ALGORITHM: str = Field(default="HS256", alias="JWT_ALGORITHM")  # Use RS256 in production for better security
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=15, alias="ACCESS_TOKEN_EXPIRE_MINUTES")  # Short-lived access tokens
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, alias="REFRESH_TOKEN_EXPIRE_DAYS")
     
     # AI Provider Configuration

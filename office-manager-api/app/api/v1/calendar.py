@@ -106,7 +106,11 @@ async def create_event(
 ):
     """
     Create a new calendar event.
+    If event type is 'meeting' or 'call', also creates an Appointment.
     """
+    from app.models.event import EventType
+    from app.models.office.office_models import Appointment, AppointmentStatus
+    
     tenant_id = get_tenant_from_request(request) or str(user.tenant_id)
     
     service = CalendarService(db, tenant_id)
@@ -122,6 +126,42 @@ async def create_event(
         resource_id=str(event.id),
         new_values=event.to_dict(),
     )
+    
+    # If this is a meeting or call, also create an Appointment
+    if event_data.event_type in [EventType.MEETING, EventType.CALL]:
+        # Check if appointment already exists for this event
+        # Note: Appointment uses naive datetimes, Event uses timezone-aware
+        # We need to normalize to UTC without timezone for comparison
+        from datetime import timezone
+        start_time_naive = event_data.start_time.astimezone(timezone.utc).replace(tzinfo=None)
+        end_time_naive = event_data.end_time.astimezone(timezone.utc).replace(tzinfo=None)
+        
+        existing_apt = await db.execute(
+            select(Appointment).where(
+                Appointment.tenant_id == tenant_id,
+                Appointment.title == event_data.title,
+                Appointment.start_time == start_time_naive,
+            )
+        )
+        if not existing_apt.scalar_one_or_none():
+            appointment = Appointment(
+                tenant_id=tenant_id,
+                customer_id=None,  # Can be linked later
+                assigned_to_id=str(user.id),
+                title=event_data.title,
+                description=event_data.description or "",
+                location=event_data.location or "",
+                start_time=start_time_naive,  # Store as naive UTC
+                end_time=end_time_naive,  # Store as naive UTC
+                status=AppointmentStatus.SCHEDULED,
+                appointment_type=event_data.event_type.value,
+            )
+            db.add(appointment)
+            await db.commit()
+            # Update event with appointment reference
+            event.appointment_id = str(appointment.id)
+            await db.commit()
+            await db.refresh(event)
     
     return event
 

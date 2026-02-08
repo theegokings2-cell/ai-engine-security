@@ -4,37 +4,38 @@ JWT authentication and password handling.
 from datetime import datetime, timedelta
 from typing import Optional
 
+import bcrypt
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.user import User
 from app.db.session import get_db
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# JWT
-security = HTTPBearer()
+# Import all models to register SQLAlchemy relationships
+import app.models  # noqa: F401
+from app.models.user import User
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password."""
-    import hashlib
-    # TODO: Fix bcrypt for Python 3.14 - using SHA256 temp workaround
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password using bcrypt."""
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    import hashlib
-    # TODO: Fix bcrypt for Python 3.14 - using SHA256 temp workaround
-    return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+    """Verify a password against its bcrypt hash."""
+    try:
+        password_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 def create_access_token(
@@ -80,10 +81,22 @@ def decode_token(token: str) -> dict:
             algorithms=[settings.JWT_ALGORITHM],
         )
         return payload
-    except JWTError as e:
+    except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {str(e)}",
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.JWTClaimsError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token claims",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -104,7 +117,7 @@ async def get_token_from_request(request: Request) -> Optional[str]:
 
 
 async def get_current_user(
-    request: Request = None,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Get the current authenticated user from JWT token."""
@@ -113,12 +126,10 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     # Get token from header or cookie
-    token = None
-    if request:
-        token = await get_token_from_request(request)
-    
+    token = await get_token_from_request(request)
+
     # If no token from request, raise unauthorized
     if not token:
         raise credentials_exception
@@ -163,13 +174,11 @@ async def require_admin(
 
 
 async def get_current_tenant_id(
-    request: Request = None,
+    request: Request,
 ) -> str:
     """Get the current tenant ID from JWT token."""
-    token = None
-    if request:
-        token = await get_token_from_request(request)
-    
+    token = await get_token_from_request(request)
+
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

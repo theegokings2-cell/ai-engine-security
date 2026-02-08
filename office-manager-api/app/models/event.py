@@ -58,6 +58,9 @@ class Event(Base, TenantMixin, TimestampMixin):
     # Reminder
     reminder_minutes: Optional[int] = Column(JSONB, nullable=True)  # [15, 60, 1440]
     
+    # Linked Appointment (for meetings/calls)
+    appointment_id = Column(UUID(as_uuid=True), nullable=True)
+    
     # Creator
     created_by_id = Column(UUID(as_uuid=True), nullable=False)
     
@@ -126,6 +129,7 @@ class EventResponse(BaseModel):
     meeting_link: Optional[str]
     attendees: Optional[List[str]]
     reminder_minutes: Optional[List[int]]
+    appointment_id: Optional[Union[str, PyUUID]]  # Linked appointment for meetings/calls
     created_by_id: Union[str, PyUUID]
     created_at: datetime
 
