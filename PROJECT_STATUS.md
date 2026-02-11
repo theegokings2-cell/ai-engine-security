@@ -2,7 +2,7 @@
 
 **IMPORTANT:** Both AI assistants must read this file before starting work.
 
-**Last Updated:** 2026-02-10 21:25 EST by Claude Code (BOTH PORTALS NOW WORKING! 🎉)
+**Last Updated:** 2026-02-11 12:05 EST by Claude Code (Security hardening complete + all fixes pushed)
 
 ---
 
@@ -275,9 +275,30 @@ All endpoints tested and returning correct data:
 
 **Portal pages MUST use `portalApiClient`**, never `apiClient`. The admin interceptors break portal auth.
 
+### SECURITY HARDENING (2026-02-11 by Claude Code)
+Full OWASP vulnerability scan + fixes applied to both API and frontend:
+
+**API Fixes:**
+1. **CORS locked down** — Replaced `allow_methods=["*"]` and `allow_headers=["*"]` with explicit lists
+2. **Password reset token removed from response** — `demo_reset_token` was being returned in API response
+3. **Secure cookie flag enabled** — `secure=True` when `APP_ENV == "production"` in admin_ui.py
+4. **Password strength validation added** — Min 8 chars, uppercase, lowercase, digit required on all password endpoints
+5. **Rate limiting on password reset** — `3/min` on request, `5/min` on confirm
+6. **Debug print() statements removed** — Replaced with structured logger calls
+
+**Frontend Fixes:**
+7. **Security headers added to Next.js** — X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, Permissions-Policy
+8. **Production source maps disabled** — `productionBrowserSourceMaps: false`
+9. **Sensitive console.log removed** — JWT payload logging and auth debug logs stripped from employee layout
+10. **JWT parsing try-catch added** — Customer layout now handles malformed tokens gracefully
+11. **All portal pages use `portalApiClient`** — 8 files were still using admin `apiClient` (register, password-reset, customer pages)
+
+**Still requires manual action:**
+- Rotate all exposed secrets in `.env` (JWT_SECRET_KEY, Anthropic API key, Telegram bot token)
+- Add `.env` to `.gitignore` if not already there
+
 ### REMAINING ITEMS
 - **AI endpoints are placeholders** - summarize/follow-up/task-summary return hardcoded strings, need MiniMax integration
-- **Portal auth changes need commit** — All changes listed above are on disk, Docker container has the API fix via `docker cp` but needs rebuild for persistence
 
 ---
 
@@ -449,11 +470,17 @@ openclaw gateway
 | Security headers (CSP, HSTS) | ✅ | Implemented |
 | JWT token security (15min expiry) | ✅ | Implemented |
 | Cookie security (SameSite=strict) | ✅ | Implemented |
-| Rate limiting (login/register) | ✅ | Implemented |
+| Rate limiting (login/register/password reset) | ✅ | Implemented |
+| CORS explicit methods/headers | ✅ | Locked down (no wildcards) |
+| Password strength validation | ✅ | 8+ chars, upper/lower/digit |
+| Secure cookie flag (production) | ✅ | Conditional on APP_ENV |
+| Frontend security headers | ✅ | Next.js headers() config |
+| Source maps disabled (production) | ✅ | productionBrowserSourceMaps: false |
+| Portal API client isolation | ✅ | portalApiClient (no admin interceptors) |
 | Row-Level Security (RLS) | ✅ | Applied to database |
 | MFA for admins | 📅 Planned | Deferred to launch |
 | Session invalidation on password change | TODO | Pending |
 
 ---
 
-**Last Update:** 2026-02-10 19:58 EST by Claude Code (Portal route group fix, customer login UUID fix, Docker rebuilt)
+**Last Update:** 2026-02-11 12:05 EST by Claude Code (Security hardening - OWASP fixes, CORS lockdown, password validation, rate limiting, security headers)
