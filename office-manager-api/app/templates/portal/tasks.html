@@ -1,0 +1,70 @@
+<div class="p-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Tasks</h1>
+        <p class="text-gray-600 mt-1">Keep track of your pending tasks</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" x-data="{ tasks: {{ tasks | tojson }} }">
+                    <template x-if="tasks.length === 0">
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                <i class="fas fa-check-circle text-4xl mb-4 opacity-50"></i>
+                                <p>All tasks completed!</p>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-for="task in tasks" :key="task.id">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <p class="font-medium text-gray-800" x-text="task.title"></p>
+                                <p class="text-sm text-gray-500" x-text="task.description || ''"></p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs rounded-full"
+                                      :class="{
+                                          'bg-gray-100 text-gray-800': task.status === 'todo',
+                                          'bg-blue-100 text-blue-800': task.status === 'in_progress',
+                                          'bg-purple-100 text-purple-800': task.status === 'review',
+                                          'bg-green-100 text-green-800': task.status === 'completed'
+                                      }" x-text="task.status"></span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs rounded-full"
+                                      :class="{
+                                          'bg-red-100 text-red-800': task.priority === 'urgent',
+                                          'bg-orange-100 text-orange-800': task.priority === 'high',
+                                          'bg-yellow-100 text-yellow-800': task.priority === 'medium',
+                                          'bg-green-100 text-green-800': task.priority === 'low'
+                                      }" x-text="task.priority"></span>
+                            </td>
+                            <td class="px-6 py-4 w-32">
+                                <div class="flex items-center">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                                        <div class="bg-blue-600 h-2 rounded-full" :style="'width: ' + task.progress + '%'"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-500" x-text="task.progress + '%'"></span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <span x-show="task.due_date" x-text="new Date(task.due_date).toLocaleDateString()"></span>
+                                <span x-show="!task.due_date" class="text-gray-400">No due date</span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

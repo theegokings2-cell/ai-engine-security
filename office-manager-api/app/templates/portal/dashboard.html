@@ -1,0 +1,229 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Dashboard - Customer Portal{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+        <p class="text-gray-600 mt-1">Welcome back! Here's an overview of your account.</p>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" x-data="{ 
+        stats: {{ stats | tojson }},
+        loading: true 
+    }" x-init="setTimeout(() => loading = false, 500)">
+        <!-- Loading State -->
+        <template x-if="loading">
+            {% for i in range(4) %}
+            <div class="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div class="h-8 bg-gray-200 rounded w-1/3"></div>
+            </div>
+            {% endfor %}
+        </template>
+        
+        <!-- Actual Content -->
+        <template x-if="!loading">
+            <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Company</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1" x-text="stats.company_name || 'Loading...'"></p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-building text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </template>
+        
+        <template x-if="!loading">
+            <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Upcoming Appointments</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1" x-text="stats.upcoming_appointments || '0'"></p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                <a href="/portal/appointments" class="text-sm text-blue-600 hover:text-blue-800 mt-2 inline-block">
+                    View all <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </template>
+        
+        <template x-if="!loading">
+            <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Active Projects</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1" x-text="stats.active_projects || '0'"></p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-project-diagram text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+                <a href="/portal/projects" class="text-sm text-blue-600 hover:text-blue-800 mt-2 inline-block">
+                    View all <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </template>
+        
+        <template x-if="!loading">
+            <div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Pending Tasks</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1" x-text="stats.pending_tasks || '0'"></p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-tasks text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+                <a href="/portal/tasks" class="text-sm text-blue-600 hover:text-blue-800 mt-2 inline-block">
+                    View all <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </template>
+    </div>
+    
+    <!-- Activity Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Appointments -->
+        <div class="bg-white rounded-xl shadow-sm p-6 fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-calendar-alt text-blue-600 mr-2"></i>
+                    Upcoming Appointments
+                </h2>
+                <a href="/portal/appointments" class="text-sm text-blue-600 hover:text-blue-800">View all</a>
+            </div>
+            
+            <div class="space-y-4" x-data="{ appointments: {{ recent_appointments | tojson }} }">
+                <template x-if="appointments.length === 0">
+                    <p class="text-gray-500 text-center py-4">No upcoming appointments</p>
+                </template>
+                
+                <template x-for="apt in appointments.slice(0, 5)" :key="apt.id">
+                    <div class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-calendar text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800" x-text="apt.title"></p>
+                            <p class="text-sm text-gray-500" x-text="new Date(apt.start_time).toLocaleDateString() + ' ' + new Date(apt.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></p>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded-full" 
+                              :class="apt.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'"
+                              x-text="apt.status"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Recent Tasks -->
+        <div class="bg-white rounded-xl shadow-sm p-6 fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-tasks text-yellow-600 mr-2"></i>
+                    Recent Tasks
+                </h2>
+                <a href="/portal/tasks" class="text-sm text-blue-600 hover:text-blue-800">View all</a>
+            </div>
+            
+            <div class="space-y-4" x-data="{ tasks: {{ recent_tasks | tojson }} }">
+                <template x-if="tasks.length === 0">
+                    <p class="text-gray-500 text-center py-4">No pending tasks</p>
+                </template>
+                
+                <template x-for="task in tasks.slice(0, 5)" :key="task.id">
+                    <div class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center mr-4"
+                             :class="task.status === 'todo' ? 'bg-gray-200' : task.status === 'in_progress' ? 'bg-blue-100' : 'bg-green-100'">
+                            <i class="fas fa-check" 
+                               :class="task.status === 'todo' ? 'text-gray-500' : task.status === 'in_progress' ? 'text-blue-600' : 'text-green-600'"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800" x-text="task.title"></p>
+                            <div class="flex items-center mt-1">
+                                <span class="px-2 py-0.5 text-xs rounded-full"
+                                      :class="{
+                                          'bg-red-100 text-red-800': task.priority === 'urgent',
+                                          'bg-orange-100 text-orange-800': task.priority === 'high',
+                                          'bg-yellow-100 text-yellow-800': task.priority === 'medium',
+                                          'bg-green-100 text-green-800': task.priority === 'low'
+                                      }" x-text="task.priority"></span>
+                                <span class="text-xs text-gray-500 ml-2" x-show="task.due_date">
+                                    Due: <span x-text="new Date(task.due_date).toLocaleDateString()"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Recent Documents -->
+        <div class="bg-white rounded-xl shadow-sm p-6 fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-file-alt text-green-600 mr-2"></i>
+                    Recent Documents
+                </h2>
+                <a href="/portal/documents" class="text-sm text-blue-600 hover:text-blue-800">View all</a>
+            </div>
+            
+            <div class="space-y-3" x-data="{ documents: {{ recent_documents | tojson }} }">
+                <template x-if="documents.length === 0">
+                    <p class="text-gray-500 text-center py-4">No recent documents</p>
+                </template>
+                
+                <template x-for="doc in documents.slice(0, 5)" :key="doc.id">
+                    <a :href="'/portal/documents/' + doc.id" class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-file-pdf text-green-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800" x-text="doc.name"></p>
+                            <p class="text-xs text-gray-500" x-text="doc.category"></p>
+                        </div>
+                        <i class="fas fa-download text-gray-400"></i>
+                    </a>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm p-6 fade-in">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-bolt text-yellow-600 mr-2"></i>
+                Quick Actions
+            </h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/portal/appointments" class="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition text-center">
+                    <i class="fas fa-calendar-plus text-blue-600 text-2xl mb-2"></i>
+                    <p class="text-sm font-medium text-blue-800">Schedule Appointment</p>
+                </a>
+                <a href="/portal/documents" class="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition text-center">
+                    <i class="fas fa-cloud-download-alt text-green-600 text-2xl mb-2"></i>
+                    <p class="text-sm font-medium text-green-800">Download Documents</p>
+                </a>
+                <a href="/portal/tasks" class="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition text-center">
+                    <i class="fas fa-plus-circle text-purple-600 text-2xl mb-2"></i>
+                    <p class="text-sm font-medium text-purple-800">Add Task</p>
+                </a>
+                <a href="/portal/settings" class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition text-center">
+                    <i class="fas fa-user-cog text-gray-600 text-2xl mb-2"></i>
+                    <p class="text-sm font-medium text-gray-800">Update Profile</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

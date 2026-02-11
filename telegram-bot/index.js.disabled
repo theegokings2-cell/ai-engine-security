@@ -1,0 +1,161 @@
+// Simple Telegram Bot for Office Manager API
+const { Bot } = require('grammy');
+const axios = require('axios');
+
+// Hardcoded token for testing
+const TELEGRAM_TOKEN = "8504942821:AAHkNDF5Fbs2RNPiAwYjXNONoKXHVGKsk8Y";
+const API_URL = "http://localhost:8000";
+
+// Create bot
+const bot = new Bot(TELEGRAM_TOKEN);
+
+// Store user sessions
+const userSessions = new Map();
+
+// Login helper
+async function login(email, password) {
+  try {
+    const response = await axios.post(`${API_URL}/api/v1/auth/login`, 
+      new URLSearchParams({ username: email, password }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Login error:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+// Get tasks helper
+async function getTasks(token) {
+  try {
+    const response = await axios.get(`${API_URL}/api/v1/tasks`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Get tasks error:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+// Create task helper
+async function createTask(token, title, description) {
+  try {
+    const response = await axios.post(`${API_URL}/api/v1/tasks`,
+      { title, description, status: 'pending', priority: 'medium' },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Create task error:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+// Start command
+bot.command('start', async (ctx) => {
+  const userId = ctx.from.id;
+  userSessions.delete(userId);
+  
+  ctx.reply(`👋 Welcome to Office Manager Bot!
+
+Available commands:
+/login <email> <password> - Login to your account
+/tasks - View your tasks
+/newtask <title> - Create a new task
+/calendar - View calendar events
+/help - Show this help message
+
+Use /login to get started!`);
+});
+
+// Login command
+bot.command('login', async (ctx) => {
+  const args = ctx.message.text.split(' ').slice(1);
+  if (args.length < 2) {
+    return ctx.reply('Usage: /login <email> <password>');
+  }
+  
+  const [email, password] = args;
+  const token = await login(email, password);
+  
+  if (token) {
+    userSessions.set(ctx.from.id, { email, token });
+    ctx.reply('✅ Login successful! You can now use /tasks and other commands.');
+  } else {
+    ctx.reply('❌ Login failed. Please check your credentials.');
+  }
+});
+
+// Tasks command
+bot.command('tasks', async (ctx) => {
+  const session = userSessions.get(ctx.from.id);
+  
+  if (!session) {
+    return ctx.reply('Please login first with /login <email> <password>');
+  }
+  
+  const tasks = await getTasks(session.token);
+  
+  if (!tasks || tasks.length === 0) {
+    return ctx.reply('📋 No tasks found.');
+  }
+  
+  const taskList = tasks.map((t, i) => 
+    `${i + 1}. ${t.title} - ${t.status || 'pending'}`
+  ).join('\n');
+  
+  ctx.reply(`📋 Your Tasks:\n\n${taskList}`);
+});
+
+// New task command
+bot.command('newtask', async (ctx) => {
+  const session = userSessions.get(ctx.from.id);
+  
+  if (!session) {
+    return ctx.reply('Please login first with /login <email> <password>');
+  }
+  
+  const title = ctx.message.text.split(' ').slice(1).join(' ');
+  
+  if (!title) {
+    return ctx.reply('Usage: /newtask <title>');
+  }
+  
+  const task = await createTask(session.token, title, '');
+  
+  if (task) {
+    ctx.reply(`✅ Task created: "${title}"`);
+  } else {
+    ctx.reply('❌ Failed to create task.');
+  }
+});
+
+// Help command
+bot.command('help', async (ctx) => {
+  ctx.reply(`📚 Office Manager Bot Commands:
+
+/login <email> <password> - Login to your account
+/tasks - View your tasks
+/newtask <title> - Create a new task
+/calendar - View calendar events (coming soon)
+/help - Show this help message
+
+To get started:
+1. Register at http://localhost:8000/admin/register
+2. Login with /login <your_email> <your_password>
+3. Use /tasks and /newtask to manage tasks`);
+});
+
+// Start the bot
+console.log('🤖 Office Manager Telegram Bot starting...');
+console.log(`API URL: ${API_URL}`);
+console.log(`Bot Token: ${TELEGRAM_TOKEN.substring(0, 10)}...`);
+
+// Use run with manual offset to skip existing updates
+bot.start({
+  onStart: () => {
+    console.log('✅ Bot started, processing new updates only...');
+  }
+});

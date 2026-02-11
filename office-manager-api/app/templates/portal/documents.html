@@ -1,0 +1,126 @@
+<div class="p-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Documents</h1>
+        <p class="text-gray-600 mt-1">Access and download your documents</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg p-4 shadow-sm border">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-file-pdf text-red-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-800" x-data="{ docs: {{ documents | tojson }} }" x-text="docs.filter(d => d.category === 'contract').length"></p>
+                    <p class="text-sm text-gray-500">Contracts</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow-sm border">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-file-invoice text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-800" x-data="{ docs: {{ documents | tojson }} }" x-text="docs.filter(d => d.category === 'invoice').length"></p>
+                    <p class="text-sm text-gray-500">Invoices</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow-sm border">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-file-contract text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-800" x-data="{ docs: {{ documents | tojson }} }" x-text="docs.filter(d => d.category === 'proposal').length"></p>
+                    <p class="text-sm text-gray-500">Proposals</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow-sm border">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-file-alt text-gray-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-800">{{ documents | length }}</p>
+                    <p class="text-sm text-gray-500">Total</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" x-data="{ documents: {{ documents | tojson }} }">
+                    <template x-if="documents.length === 0">
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
+                                <p>No documents available</p>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-for="doc in documents" :key="doc.id">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3"
+                                         :class="{
+                                             'bg-red-100': doc.mime_type === 'application/pdf',
+                                             'bg-blue-100': doc.mime_type && doc.mime_type.includes('spreadsheet'),
+                                             'bg-green-100': doc.mime_type && doc.mime_type.includes('word'),
+                                         }">
+                                        <i class="fas fa-file text-gray-600"
+                                           :class="{
+                                               'text-red-600': doc.mime_type === 'application/pdf',
+                                               'text-blue-600': doc.mime_type && doc.mime_type.includes('spreadsheet'),
+                                               'text-green-600': doc.mime_type && doc.mime_type.includes('word'),
+                                           }"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-800" x-text="doc.name"></p>
+                                        <p class="text-sm text-gray-500" x-text="doc.description || ''"></p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800" x-text="doc.category"></span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-600" x-text="formatFileSize(doc.file_size)"></td>
+                            <td class="px-6 py-4 text-sm text-gray-600" x-text="new Date(doc.created_at).toLocaleDateString()"></td>
+                            <td class="px-6 py-4">
+                                <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function formatFileSize(bytes) {
+            if (!bytes) return 'Unknown';
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
+        }
+    </script>
+</div>

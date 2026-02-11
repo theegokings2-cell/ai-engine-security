@@ -1,0 +1,17 @@
+Generic single-database configuration with async PostgreSQL.
+
+Usage:
+    # Create a new migration
+    alembic revision --autogenerate -m "description"
+
+    # Apply all migrations
+    alembic upgrade head
+
+    # Rollback one migration
+    alembic downgrade -1
+
+    # Show current revision
+    alembic current
+
+    # Show migration history
+    alembic history

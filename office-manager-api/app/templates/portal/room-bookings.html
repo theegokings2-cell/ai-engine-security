@@ -1,0 +1,92 @@
+<div class="p-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Room Bookings</h1>
+        <p class="text-gray-600 mt-1">View your upcoming meeting room reservations</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meeting</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendees</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" x-data="{ bookings: {{ bookings | tojson }} }">
+                    <template x-if="bookings.length === 0">
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                <i class="fas fa-door-open text-4xl mb-4 opacity-50"></i>
+                                <p>No room bookings found</p>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-for="booking in bookings" :key="booking.id">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <p class="font-medium text-gray-800" x-text="booking.title"></p>
+                                <p class="text-sm text-gray-500" x-text="booking.description || ''"></p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-gray-800" x-text="new Date(booking.start_time).toLocaleDateString()"></p>
+                                <p class="text-sm text-gray-500">
+                                    <span x-text="new Date(booking.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></span>
+                                    -
+                                    <span x-text="new Date(booking.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></span>
+                                </p>
+                            </td>
+                            <td class="px-6 py-4 text-gray-600">
+                                <span x-text="calculateDuration(booking.start_time, booking.end_time)"></span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <template x-for="(attendee, index) in (booking.attendees || []).slice(0, 3)" :key="index">
+                                            <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium border-2 border-white"
+                                                 x-text="attendee ? attendee.charAt(0).toUpperCase() : '?'"></div>
+                                        </template>
+                                        <template x-if="(booking.attendees || []).length > 3">
+                                            <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-medium border-2 border-white">
+                                                +<span x-text="(booking.attendees || []).length - 3"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs rounded-full"
+                                      :class="{
+                                          'bg-blue-100 text-blue-800': booking.status === 'confirmed',
+                                          'bg-yellow-100 text-yellow-800': booking.status === 'pending',
+                                          'bg-red-100 text-red-800': booking.status === 'cancelled',
+                                          'bg-green-100 text-green-800': booking.status === 'completed'
+                                      }" x-text="booking.status"></span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function calculateDuration(start, end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            const diffMs = endDate - startDate;
+            const diffMins = Math.round(diffMs / 60000);
+            
+            if (diffMins < 60) {
+                return diffMins + ' min';
+            } else {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                return mins > 0 ? hours + 'h ' + mins + 'm' : hours + 'h';
+            }
+        }
+    </script>
+</div>
