@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Calendar, Clock, Eye } from "lucide-react";
@@ -54,13 +54,13 @@ export default function CustomerTasksPage() {
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
@@ -74,7 +74,7 @@ export default function CustomerTasksPage() {
 
     try {
       setIsLoading(true);
-      const response = await apiClient.get("/portal/tasks", {
+      const response = await portalApiClient.get("/portal/tasks", {
         params: { limit: 100 },
       });
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, CheckSquare, FileText, Clock, User } from "lucide-react";
@@ -52,13 +52,13 @@ export default function CustomerDashboardPage() {
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
@@ -74,12 +74,12 @@ export default function CustomerDashboardPage() {
       setIsLoading(true);
       
       // Fetch stats
-      const statsRes = await apiClient.get("/portal/dashboard/stats");
+      const statsRes = await portalApiClient.get("/portal/dashboard/stats");
       setStats(statsRes.data);
       
       // Fetch appointments
       try {
-        const aptRes = await apiClient.get("/portal/appointments", { params: { limit: 5 } });
+        const aptRes = await portalApiClient.get("/portal/appointments", { params: { limit: 5 } });
         setAppointments(aptRes.data.appointments || []);
       } catch (e) {
         setAppointments([]);
@@ -87,7 +87,7 @@ export default function CustomerDashboardPage() {
       
       // Fetch tasks
       try {
-        const taskRes = await apiClient.get("/portal/tasks", { params: { limit: 5 } });
+        const taskRes = await portalApiClient.get("/portal/tasks", { params: { limit: 5 } });
         setTasks(taskRes.data.tasks || []);
       } catch (e) {
         setTasks([]);

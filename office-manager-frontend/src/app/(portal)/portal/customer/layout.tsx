@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Calendar, CheckSquare, FileText, User, LogOut } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 
 interface PortalUser {
   id: string;
@@ -39,13 +39,19 @@ export default function CustomerPortalLayout({
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
     // Check if this is a customer login
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.portal_type === "employee") {
-      // Employee trying to access customer portal - redirect to employee portal
-      router.push("/portal/employee");
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.portal_type === "employee") {
+        router.push("/portal/employee");
+        return;
+      }
+    } catch {
+      localStorage.removeItem("portal_access_token");
+      localStorage.removeItem("portal_refresh_token");
+      router.push("/portal/login");
       return;
     }
 
@@ -54,10 +60,10 @@ export default function CustomerPortalLayout({
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/me");
       setUser(response.data);
     } catch (error) {
-      console.error("Failed to fetch user:", error);
+      // Auth failed - clear tokens and redirect
       localStorage.removeItem("portal_access_token");
       localStorage.removeItem("portal_refresh_token");
       router.push("/portal/login");

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Header } from "@/components/layouts/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,15 +55,15 @@ export default function PortalDashboardPage() {
 
     try {
       // Set auth header
-      apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       // Fetch user data
-      const userRes = await apiClient.get("/portal/auth/me");
+      const userRes = await portalApiClient.get("/portal/auth/me");
       setUser(userRes.data);
 
       // Fetch appointments
       try {
-        const aptRes = await apiClient.get("/portal/appointments");
+        const aptRes = await portalApiClient.get("/portal/appointments");
         setAppointments(aptRes.data.appointments || []);
       } catch (e) {
         console.log("No appointments");
@@ -71,7 +71,7 @@ export default function PortalDashboardPage() {
 
       // Fetch tasks
       try {
-        const taskRes = await apiClient.get("/portal/tasks");
+        const taskRes = await portalApiClient.get("/portal/tasks");
         setTasks(taskRes.data.tasks || []);
       } catch (e) {
         console.log("No tasks");
@@ -79,7 +79,7 @@ export default function PortalDashboardPage() {
 
       // Fetch notes
       try {
-        const noteRes = await apiClient.get("/portal/notes");
+        const noteRes = await portalApiClient.get("/portal/notes");
         setNotes(noteRes.data.notes || []);
       } catch (e) {
         console.log("No notes");

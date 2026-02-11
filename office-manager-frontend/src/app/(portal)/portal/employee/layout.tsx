@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Calendar, CheckSquare, Users, FileText, Clock, LogOut, LayoutDashboard, User } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 
 interface PortalUser {
   id: string;
@@ -37,17 +37,23 @@ export default function EmployeePortalLayout({
   useEffect(() => {
     const token = localStorage.getItem("portal_access_token");
     if (!token) {
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
     // Check if this is an employee login
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.portal_type !== "employee") {
-      // Customer trying to access employee portal - redirect to customer portal
-      router.push("/portal/dashboard");
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.portal_type !== "employee") {
+        router.push("/portal/dashboard");
+        return;
+      }
+    } catch {
+      localStorage.removeItem("portal_access_token");
+      localStorage.removeItem("portal_refresh_token");
+      router.push("/portal/employee-login");
       return;
     }
 
@@ -56,13 +62,13 @@ export default function EmployeePortalLayout({
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/employee-me");
       setUser(response.data);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
+    } catch (error: any) {
+      // Auth failed - clear tokens and redirect
       localStorage.removeItem("portal_access_token");
       localStorage.removeItem("portal_refresh_token");
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +77,7 @@ export default function EmployeePortalLayout({
   const handleLogout = () => {
     localStorage.removeItem("portal_access_token");
     localStorage.removeItem("portal_refresh_token");
-    router.push("/portal/login");
+    router.push("/portal/employee-login");
   };
 
   if (isLoading) {
