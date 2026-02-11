@@ -126,6 +126,10 @@ class AIService:
                     {"role": "user", "content": user_prompt}
                 ],
             )
+            # Filter for TextBlock (skip ThinkingBlock from extended thinking models)
+            for block in response.content:
+                if hasattr(block, 'text'):
+                    return block.text
             return response.content[0].text
         elif self.provider == "ollama":
             # Ollama uses OpenAI-compatible API

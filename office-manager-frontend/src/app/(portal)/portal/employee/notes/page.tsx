@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,22 +49,22 @@ export default function EmployeeNotesPage() {
   useEffect(() => {
     const token = localStorage.getItem("portal_access_token");
     if (!token) {
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/employee-me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("portal_access_token");
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
     }
   };
 
@@ -73,7 +73,7 @@ export default function EmployeeNotesPage() {
 
     try {
       setIsLoading(true);
-      const response = await apiClient.get("/portal/notes", {
+      const response = await portalApiClient.get("/portal/notes", {
         params: { search, limit: 100 },
       });
       setNotes(response.data.notes || []);
@@ -109,13 +109,13 @@ export default function EmployeeNotesPage() {
     try {
       if (selectedNote) {
         // Update existing note
-        await apiClient.put(`/portal/notes/${selectedNote.id}`, {
+        await portalApiClient.put(`/portal/notes/${selectedNote.id}`, {
           title: formData.title,
           content: formData.content,
         });
       } else {
         // Create new note
-        await apiClient.post("/portal/notes", {
+        await portalApiClient.post("/portal/notes", {
           title: formData.title,
           content: formData.content,
         });
@@ -133,7 +133,7 @@ export default function EmployeeNotesPage() {
     if (!confirm("Are you sure you want to delete this note?")) return;
 
     try {
-      await apiClient.delete(`/portal/notes/${noteId}`);
+      await portalApiClient.delete(`/portal/notes/${noteId}`);
       fetchNotes();
     } catch (error) {
       console.error("Failed to delete note:", error);

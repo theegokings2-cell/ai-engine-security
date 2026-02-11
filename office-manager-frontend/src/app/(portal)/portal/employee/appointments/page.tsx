@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,22 +81,22 @@ export default function EmployeeAppointmentsPage() {
   useEffect(() => {
     const token = localStorage.getItem("portal_access_token");
     if (!token) {
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/employee-me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("portal_access_token");
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
     }
   };
 
@@ -110,7 +110,7 @@ export default function EmployeeAppointmentsPage() {
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
-      const aptResponse = await apiClient.get("/portal/appointments", {
+      const aptResponse = await portalApiClient.get("/portal/appointments", {
         params: {
           skip: 0,
           limit: 100,
@@ -131,7 +131,7 @@ export default function EmployeeAppointmentsPage() {
       
       // Fetch customers
       try {
-        const custResponse = await apiClient.get("/portal/customers");
+        const custResponse = await portalApiClient.get("/portal/customers");
         setCustomers(custResponse.data.customers || []);
       } catch (e) {
         // Customers might not be available for all roles
@@ -180,10 +180,10 @@ export default function EmployeeAppointmentsPage() {
     try {
       if (selectedAppointment) {
         // Update existing appointment
-        await apiClient.put(`/portal/appointments/${selectedAppointment.id}`, formData);
+        await portalApiClient.put(`/portal/appointments/${selectedAppointment.id}`, formData);
       } else {
         // Create new appointment
-        await apiClient.post("/portal/appointments", formData);
+        await portalApiClient.post("/portal/appointments", formData);
       }
       setIsDialogOpen(false);
       setFormData({ status: "scheduled" });
@@ -199,7 +199,7 @@ export default function EmployeeAppointmentsPage() {
     if (!confirm("Are you sure you want to delete this appointment?")) return;
 
     try {
-      await apiClient.delete(`/portal/appointments/${selectedAppointment.id}`);
+      await portalApiClient.delete(`/portal/appointments/${selectedAppointment.id}`);
       setIsViewOpen(false);
       setSelectedAppointment(null);
       fetchData();

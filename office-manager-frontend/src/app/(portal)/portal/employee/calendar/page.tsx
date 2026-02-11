@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,31 +45,31 @@ export default function EmployeeCalendarPage() {
   useEffect(() => {
     const token = localStorage.getItem("portal_access_token");
     if (!token) {
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
     fetchEvents();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/employee-me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("portal_access_token");
       localStorage.removeItem("portal_refresh_token");
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
     }
   };
 
   const fetchEvents = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get("/calendar", {
+      const response = await portalApiClient.get("/calendar", {
         params: {
           start_date: startOfMonth(currentDate).toISOString(),
           end_date: endOfMonth(currentDate).toISOString(),

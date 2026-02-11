@@ -39,6 +39,14 @@ class CustomerUserCreate(BaseModel):
     phone: Optional[str] = None
 
 
+class SelfRegisterRequest(BaseModel):
+    """Schema for self-registration"""
+    email: EmailStr
+    password: str
+    full_name: str
+    company_name: Optional[str] = None
+
+
 class CustomerUserResponse(BaseModel):
     """Schema for customer user response"""
     id: UUID
@@ -227,6 +235,101 @@ async def register_customer_user(
     )
     
     return customer_user
+
+
+# Self-registration endpoint (simpler, for public signup)
+@router.post("/self-register")
+async def self_register_customer(
+    request: SelfRegisterRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Self-registration for customers (no customer_id required).
+    Creates a new customer and customer user in one step.
+    """
+    from app.models.office.office_models import Customer
+    from app.models.tenant import Tenant
+    from uuid import uuid4
+    
+    email = request.email
+    password = request.password
+    full_name = request.full_name
+    company_name = request.company_name or f"{full_name}'s Company"
+    
+    # Check if user with email already exists
+    result = await db.execute(
+        select(CustomerUser).where(CustomerUser.email == email)
+    )
+    existing = result.scalar_one_or_none()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Parse full name
+    name_parts = full_name.strip().split(" ", 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+    
+    # Get or create a default tenant for self-registered users
+    tenant_result = await db.execute(
+        select(Tenant).where(Tenant.name == "Self-Registered Customers")
+    )
+    tenant = tenant_result.scalar_one_or_none()
+    
+    if not tenant:
+        tenant = Tenant(
+            id=uuid4(),
+            name="Self-Registered Customers",
+            slug="self-registered",
+            subscription_tier="free",
+        )
+        db.add(tenant)
+        await db.flush()
+    
+    # Create a customer for this user
+    customer = Customer(
+        id=uuid4(),
+        tenant_id=tenant.id,
+        customer_number=f"SR-{uuid4().hex[:8].upper()}",
+        company_name=company_name,
+        contact_name=full_name,
+        email=email,
+    )
+    db.add(customer)
+    await db.flush()
+    
+    # Create customer user linked to the customer
+    customer_user = CustomerUser(
+        customer_id=customer.id,
+        email=email,
+        hashed_password=get_password_hash(password),
+        first_name=first_name,
+        last_name=last_name,
+        phone=None,
+    )
+    
+    db.add(customer_user)
+    await db.commit()
+    await db.refresh(customer_user)
+    
+    logger.info(
+        "customer_self_registered",
+        customer_user_id=str(customer_user.id),
+        email=email
+    )
+    
+    return {
+        "message": "Registration successful",
+        "user": {
+            "id": str(customer_user.id),
+            "email": customer_user.email,
+            "first_name": customer_user.first_name,
+            "last_name": customer_user.last_name,
+        }
+    }
 
 
 @router.post("/login", response_model=TokenResponse)

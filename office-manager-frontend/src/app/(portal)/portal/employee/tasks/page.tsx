@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckSquare, Plus, Clock, Calendar, ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckSquare, Plus, Clock, Calendar, ChevronLeft, ChevronRight, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, parseISO, isAfter } from "date-fns";
 
@@ -66,30 +67,37 @@ export default function EmployeeTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState({
     status: "todo" as Task["status"],
+  });
+  const [newTaskData, setNewTaskData] = useState({
+    title: "",
+    description: "",
+    priority: "medium" as Task["priority"],
+    due_date: "",
   });
 
   useEffect(() => {
     const token = localStorage.getItem("portal_access_token");
     if (!token) {
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/employee-me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("portal_access_token");
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
     }
   };
 
@@ -101,7 +109,7 @@ export default function EmployeeTasksPage() {
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
 
-      const response = await apiClient.get("/portal/tasks", {
+      const response = await portalApiClient.get("/portal/tasks", {
         params: {
           skip: 0,
           limit: 100,
@@ -149,12 +157,22 @@ export default function EmployeeTasksPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const openCreateDialog = () => {
+    setNewTaskData({
+      title: "",
+      description: "",
+      priority: "medium",
+      due_date: "",
+    });
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTask) return;
 
     try {
-      await apiClient.put(`/portal/tasks/${selectedTask.id}/status`, {
+      await portalApiClient.put(`/portal/tasks/${selectedTask.id}/status`, {
         status: formData.status,
       });
       setIsDialogOpen(false);
@@ -162,6 +180,35 @@ export default function EmployeeTasksPage() {
       fetchTasks();
     } catch (error) {
       console.error("Failed to update task:", error);
+    }
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskData.title) return;
+
+    try {
+      await portalApiClient.post("/portal/tasks", {
+        title: newTaskData.title,
+        description: newTaskData.description,
+        priority: newTaskData.priority,
+        due_date: newTaskData.due_date || undefined,
+      });
+      setIsCreateDialogOpen(false);
+      fetchTasks();
+    } catch (error) {
+      console.error("Failed to create task:", error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      await portalApiClient.delete(`/portal/tasks/${taskId}`);
+      fetchTasks();
+    } catch (error) {
+      console.error("Failed to delete task:", error);
     }
   };
 
@@ -229,6 +276,10 @@ export default function EmployeeTasksPage() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              <Button onClick={openCreateDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Task
+              </Button>
             </div>
           </div>
 
@@ -278,6 +329,10 @@ export default function EmployeeTasksPage() {
               <CardContent className="py-12 text-center">
                 <CheckSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">No tasks for {format(currentMonth, "MMMM yyyy")}</p>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Task
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -326,10 +381,13 @@ export default function EmployeeTasksPage() {
                             {task.priority}
                           </span>
                           {task.status !== "done" && task.status !== "cancelled" && (
-                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)}>
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -347,7 +405,7 @@ export default function EmployeeTasksPage() {
           <DialogHeader>
             <DialogTitle>Update Task Status</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <form onSubmit={handleUpdateStatus} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Task</Label>
               <p className="text-sm font-medium">{selectedTask?.title}</p>
@@ -369,6 +427,63 @@ export default function EmployeeTasksPage() {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit">Update</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Task Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Task</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateTask} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Task Title *</Label>
+              <Input
+                id="title"
+                placeholder="Enter task title"
+                value={newTaskData.title}
+                onChange={(e) => setNewTaskData({ ...newTaskData, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Enter task description"
+                value={newTaskData.description}
+                onChange={(e) => setNewTaskData({ ...newTaskData, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select value={newTaskData.priority} onValueChange={(value) => setNewTaskData({ ...newTaskData, priority: value as Task["priority"] })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Due Date</Label>
+              <Input
+                id="due_date"
+                type="datetime-local"
+                value={newTaskData.due_date}
+                onChange={(e) => setNewTaskData({ ...newTaskData, due_date: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={!newTaskData.title}>Create Task</Button>
             </DialogFooter>
           </form>
         </DialogContent>

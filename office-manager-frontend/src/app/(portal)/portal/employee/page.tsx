@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layouts/header";
-import { apiClient } from "@/lib/api/client";
+import { portalApiClient } from "@/lib/api/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, CheckSquare, Users, FileText } from "lucide-react";
+import { Calendar, Clock, CheckSquare, Users, FileText, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface PortalUser {
@@ -48,22 +48,22 @@ export default function EmployeeDashboardPage() {
   useEffect(() => {
     const token = localStorage.getItem("portal_access_token");
     if (!token) {
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
       return;
     }
 
-    apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    portalApiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   }, [router]);
 
   const fetchUser = async () => {
     try {
-      const response = await apiClient.get("/portal/auth/me");
+      const response = await portalApiClient.get("/portal/auth/employee-me");
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("portal_access_token");
-      router.push("/portal/login");
+      router.push("/portal/employee-login");
     }
   };
 
@@ -74,12 +74,12 @@ export default function EmployeeDashboardPage() {
       setIsLoading(true);
       
       // Fetch stats
-      const statsRes = await apiClient.get("/portal/dashboard/stats");
+      const statsRes = await portalApiClient.get("/portal/dashboard/stats");
       setStats(statsRes.data);
       
       // Fetch appointments
       try {
-        const aptRes = await apiClient.get("/portal/appointments", { params: { limit: 5 } });
+        const aptRes = await portalApiClient.get("/portal/appointments", { params: { limit: 5 } });
         setAppointments(aptRes.data.appointments || []);
       } catch (e) {
         setAppointments([]);
@@ -87,7 +87,7 @@ export default function EmployeeDashboardPage() {
       
       // Fetch tasks
       try {
-        const taskRes = await apiClient.get("/portal/tasks", { params: { limit: 5 } });
+        const taskRes = await portalApiClient.get("/portal/tasks", { params: { limit: 5 } });
         setTasks(taskRes.data.tasks || []);
       } catch (e) {
         setTasks([]);
@@ -130,9 +130,12 @@ export default function EmployeeDashboardPage() {
             </p>
           </div>
 
-          {/* Stats */}
+          {/* Interactive Stats */}
           <div className="grid gap-4 md:grid-cols-4 mb-8">
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => router.push("/portal/employee/appointments")}
+            >
               <CardContent className="flex items-center gap-4 p-6">
                 <div className="p-3 bg-blue-100 rounded-lg">
                   <Calendar className="h-6 w-6 text-blue-600" />
@@ -143,7 +146,10 @@ export default function EmployeeDashboardPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => router.push("/portal/employee/tasks")}
+            >
               <CardContent className="flex items-center gap-4 p-6">
                 <div className="p-3 bg-green-100 rounded-lg">
                   <CheckSquare className="h-6 w-6 text-green-600" />
@@ -151,6 +157,35 @@ export default function EmployeeDashboardPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Active Tasks</p>
                   <p className="text-2xl font-bold">{stats.active_tasks}</p>
+                </div>
+              </CardContent>
+            </Card>
+            {/* Quick Add Buttons */}
+            <Card className="cursor-pointer hover:shadow-md transition-shadow bg-blue-50 border-blue-200">
+              <CardContent 
+                className="flex items-center gap-4 p-6"
+                onClick={() => router.push("/portal/employee/appointments")}
+              >
+                <div className="p-3 bg-blue-500 rounded-lg">
+                  <Plus className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Add New</p>
+                  <p className="text-lg font-bold text-blue-700">Appointment</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow bg-green-50 border-green-200">
+              <CardContent 
+                className="flex items-center gap-4 p-6"
+                onClick={() => router.push("/portal/employee/tasks")}
+              >
+                <div className="p-3 bg-green-500 rounded-lg">
+                  <Plus className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Add New</p>
+                  <p className="text-lg font-bold text-green-700">Task</p>
                 </div>
               </CardContent>
             </Card>
@@ -170,11 +205,21 @@ export default function EmployeeDashboardPage() {
                   </Button>
                 </div>
                 {appointments.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No upcoming appointments</p>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">No upcoming appointments</p>
+                    <Button onClick={() => router.push("/portal/employee/appointments")}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Appointment
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {appointments.map((apt) => (
-                      <div key={apt.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div 
+                        key={apt.id} 
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/portal/employee/appointments?id=${apt.id}`)}
+                      >
                         <div>
                           <p className="font-medium">{apt.title}</p>
                           <p className="text-sm text-muted-foreground">{formatDate(apt.start_time)}</p>
@@ -204,11 +249,21 @@ export default function EmployeeDashboardPage() {
                   </Button>
                 </div>
                 {tasks.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No active tasks</p>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">No active tasks</p>
+                    <Button onClick={() => router.push("/portal/employee/tasks")}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Task
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {tasks.map((task) => (
-                      <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div 
+                        key={task.id} 
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/portal/employee/tasks?id=${task.id}`)}
+                      >
                         <div>
                           <p className="font-medium">{task.title}</p>
                           {task.due_date && (
@@ -234,20 +289,20 @@ export default function EmployeeDashboardPage() {
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold mb-4">Quick Links</h2>
                 <div className="grid gap-4 md:grid-cols-4">
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => router.push("/portal/employee/calendar")}>
-                    <Calendar className="h-6 w-6" />
+                  <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-blue-50" onClick={() => router.push("/portal/employee/calendar")}>
+                    <Calendar className="h-6 w-6 text-blue-600" />
                     <span>Calendar</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => router.push("/portal/employee/appointments")}>
-                    <Clock className="h-6 w-6" />
+                  <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-green-50" onClick={() => router.push("/portal/employee/appointments")}>
+                    <Clock className="h-6 w-6 text-green-600" />
                     <span>Appointments</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => router.push("/portal/employee/notes")}>
-                    <FileText className="h-6 w-6" />
+                  <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-purple-50" onClick={() => router.push("/portal/employee/notes")}>
+                    <FileText className="h-6 w-6 text-purple-600" />
                     <span>Notes</span>
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => router.push("/portal/employee/customers")}>
-                    <Users className="h-6 w-6" />
+                  <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-orange-50" onClick={() => router.push("/portal/employee/customers")}>
+                    <Users className="h-6 w-6 text-orange-600" />
                     <span>Customers</span>
                   </Button>
                 </div>
