@@ -564,8 +564,8 @@ async def list_portal_tasks(
                 "id": str(t.id),
                 "title": t.title,
                 "description": t.description,
-                "status": t.status.value if t.status else None,
-                "priority": t.priority.value if t.priority else None,
+                "status": t.status.value if hasattr(t.status, 'value') else t.status,
+                "priority": t.priority.value if hasattr(t.priority, 'value') else t.priority,
                 "due_date": t.due_date.isoformat() if t.due_date else None,
                 "created_at": t.created_at.isoformat() if t.created_at else None,
             } for t in tasks]
@@ -627,8 +627,8 @@ async def create_portal_task(
         "id": str(task.id),
         "title": task.title,
         "description": task.description,
-        "status": task.status.value if task.status else None,
-        "priority": task.priority.value if task.priority else None,
+        "status": task.status.value if hasattr(task.status, 'value') else task.status,
+        "priority": task.priority.value if hasattr(task.priority, 'value') else task.priority,
         "due_date": task.due_date.isoformat() if task.due_date else None,
         "created_at": task.created_at.isoformat() if task.created_at else None,
     }
