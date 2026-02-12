@@ -695,7 +695,7 @@ async def delete_portal_task(
         select(Task).where(
             and_(
                 Task.id == task_id,
-                Task.created_by_id == current_user.id
+                Task.creator_id == current_user.id
             )
         )
     )
