@@ -148,15 +148,27 @@ async def get_portal_dashboard_stats(
             select(Appointment).where(Appointment.assigned_to_id == user_id)
         )
         appointments = apt_result.scalars().all()
-        
+
         now = datetime.utcnow()
         upcoming = [a for a in appointments if a.start_time and a.start_time > now]
-        
+
+        # Count active tasks
+        task_result = await db.execute(
+            select(Task).where(
+                and_(
+                    Task.assignee_id == user_id,
+                    Task.status.in_(["pending", "in_progress"])
+                )
+            )
+        )
+        active_tasks = task_result.scalars().all()
+
         return {
             "user_type": "employee",
             "total_appointments": len(appointments),
             "upcoming_appointments": len(upcoming),
             "past_appointments": len([a for a in appointments if a.start_time and a.start_time <= now]),
+            "active_tasks": len(active_tasks),
             "role": current_user.role,
         }
 
@@ -737,3 +749,40 @@ async def list_portal_notes(
                 "created_at": n.created_at.isoformat() if n.created_at else None,
             } for n in notes]
         }
+
+
+@router.post("/notes")
+async def create_portal_note(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_portal_user),
+):
+    """Create a new note."""
+
+    if isinstance(current_user, CustomerUser):
+        raise HTTPException(status_code=403, detail="Customers cannot create notes")
+
+    data = await request.json()
+    title = data.get("title")
+    content = data.get("content", "")
+
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    note = Note(
+        id=uuid4(),
+        title=title,
+        content=content,
+        created_by_id=current_user.id,
+        tenant_id=current_user.tenant_id,
+    )
+    db.add(note)
+    await db.commit()
+    await db.refresh(note)
+
+    return {
+        "id": str(note.id),
+        "title": note.title,
+        "content": note.content,
+        "created_at": note.created_at.isoformat() if note.created_at else None,
+    }
