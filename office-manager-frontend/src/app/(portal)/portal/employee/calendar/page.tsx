@@ -117,7 +117,7 @@ export default function EmployeeCalendarPage() {
       return true;
     }
     
-    if (event.attendees?.includes(user.id)) {
+    if (event.attendees?.includes(user.email)) {
       return true;
     }
     

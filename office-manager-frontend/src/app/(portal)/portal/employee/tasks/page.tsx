@@ -39,16 +39,16 @@ interface Task {
   id: string;
   title: string;
   description?: string;
-  status: "todo" | "in_progress" | "done" | "cancelled";
+  status: "pending" | "in_progress" | "completed" | "cancelled";
   priority: "low" | "medium" | "high" | "urgent";
   due_date?: string;
   created_at: string;
 }
 
 const statusColors: Record<Task["status"], string> = {
-  todo: "bg-gray-100 text-gray-800",
+  pending: "bg-gray-100 text-gray-800",
   in_progress: "bg-blue-100 text-blue-800",
-  done: "bg-green-100 text-green-800",
+  completed: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
 };
 
@@ -70,7 +70,7 @@ export default function EmployeeTasksPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState({
-    status: "todo" as Task["status"],
+    status: "pending" as Task["status"],
   });
   const [newTaskData, setNewTaskData] = useState({
     title: "",
@@ -121,7 +121,7 @@ export default function EmployeeTasksPage() {
 
       // Filter to show only active tasks + completed this month
       taskList = taskList.filter((task: Task) => {
-        const isActive = task.status !== "done" && task.status !== "cancelled";
+        const isActive = task.status !== "completed" && task.status !== "cancelled";
         const isThisMonth = task.due_date ? isSameMonth(parseISO(task.due_date), currentMonth) : false;
         return isActive || isThisMonth;
       });
@@ -129,8 +129,8 @@ export default function EmployeeTasksPage() {
       // Sort: overdue first, then by due date
       const now = new Date();
       taskList.sort((a: Task, b: Task) => {
-        const aOverdue = a.due_date && isAfter(parseISO(a.due_date), now) === false && a.status !== "done";
-        const bOverdue = b.due_date && isAfter(parseISO(b.due_date), now) === false && b.status !== "done";
+        const aOverdue = a.due_date && isAfter(parseISO(a.due_date), now) === false && a.status !== "completed";
+        const bOverdue = b.due_date && isAfter(parseISO(b.due_date), now) === false && b.status !== "completed";
         if (aOverdue && !bOverdue) return -1;
         if (!aOverdue && bOverdue) return 1;
         if (a.due_date && b.due_date) return parseISO(a.due_date).getTime() - parseISO(b.due_date).getTime();
@@ -220,12 +220,12 @@ export default function EmployeeTasksPage() {
     return format(parseISO(dateStr), "MMM d, h:mm a");
   };
 
-  const activeCount = tasks.filter(t => t.status !== "done" && t.status !== "cancelled").length;
+  const activeCount = tasks.filter(t => t.status !== "completed" && t.status !== "cancelled").length;
   const overdueCount = tasks.filter(t => {
     if (!t.due_date) return false;
     const now = new Date();
     const isPast = isAfter(now, parseISO(t.due_date));
-    return isPast && t.status !== "done" && t.status !== "cancelled";
+    return isPast && t.status !== "completed" && t.status !== "cancelled";
   }).length;
 
   if (!user) {
@@ -270,9 +270,9 @@ export default function EmployeeTasksPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
@@ -287,9 +287,9 @@ export default function EmployeeTasksPage() {
           <div className="grid gap-4 md:grid-cols-4 mb-6">
             <Card className={cn("bg-blue-50 border-blue-200")}>
               <CardContent className="p-4">
-                <p className="text-sm text-blue-600">To Do</p>
+                <p className="text-sm text-blue-600">Pending</p>
                 <p className="text-2xl font-bold text-blue-700">
-                  {tasks.filter(t => t.status === "todo").length}
+                  {tasks.filter(t => t.status === "pending").length}
                 </p>
               </CardContent>
             </Card>
@@ -303,9 +303,9 @@ export default function EmployeeTasksPage() {
             </Card>
             <Card className={cn("bg-green-50 border-green-200")}>
               <CardContent className="p-4">
-                <p className="text-sm text-green-600">Done</p>
+                <p className="text-sm text-green-600">Completed</p>
                 <p className="text-2xl font-bold text-green-700">
-                  {tasks.filter(t => t.status === "done").length}
+                  {tasks.filter(t => t.status === "completed").length}
                 </p>
               </CardContent>
             </Card>
@@ -338,7 +338,7 @@ export default function EmployeeTasksPage() {
           ) : (
             <div className="space-y-4">
               {tasks.map((task) => {
-                const isOverdue = task.due_date && isAfter(new Date(), parseISO(task.due_date)) && task.status !== "done" && task.status !== "cancelled";
+                const isOverdue = task.due_date && isAfter(new Date(), parseISO(task.due_date)) && task.status !== "completed" && task.status !== "cancelled";
                 
                 return (
                   <Card key={task.id} className={cn("transition-colors", isOverdue && "border-red-300 bg-red-50")}>
@@ -346,7 +346,7 @@ export default function EmployeeTasksPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className={cn("font-medium", task.status === "done" && "line-through text-muted-foreground")}>
+                            <h3 className={cn("font-medium", task.status === "completed" && "line-through text-muted-foreground")}>
                               {task.title}
                             </h3>
                             {isOverdue && (
@@ -380,7 +380,7 @@ export default function EmployeeTasksPage() {
                           <span className={cn("px-2 py-1 rounded-full text-xs font-medium", priorityColors[task.priority])}>
                             {task.priority}
                           </span>
-                          {task.status !== "done" && task.status !== "cancelled" && (
+                          {task.status !== "completed" && task.status !== "cancelled" && (
                             <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -417,9 +417,9 @@ export default function EmployeeTasksPage() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>

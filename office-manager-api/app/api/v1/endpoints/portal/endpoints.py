@@ -305,6 +305,98 @@ async def create_portal_appointment(
     }
 
 
+@router.put("/appointments/{appointment_id}")
+async def update_portal_appointment(
+    appointment_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_portal_user),
+):
+    """Update an existing appointment."""
+
+    if isinstance(current_user, CustomerUser):
+        raise HTTPException(status_code=403, detail="Customers cannot update appointments")
+
+    # Get the appointment first
+    result = await db.execute(
+        select(Appointment).where(
+            and_(
+                Appointment.id == appointment_id,
+                Appointment.created_by_id == current_user.id
+            )
+        )
+    )
+    appointment = result.scalar_one_or_none()
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Parse JSON body
+    data = await request.json()
+    title = data.get("title")
+    description = data.get("description")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    customer_id = data.get("customer_id")
+    location = data.get("location")
+    notes = data.get("notes")
+    status_value = data.get("status")
+
+    # Update fields if provided
+    if title:
+        appointment.title = title
+    if description is not None:
+        appointment.description = description
+    if start_time:
+        try:
+            appointment.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid start_time format")
+    if end_time:
+        try:
+            appointment.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid end_time format")
+    if location is not None:
+        appointment.location = location
+    if notes is not None:
+        appointment.notes = notes
+    if status_value:
+        try:
+            appointment.status = AppointmentStatus(status_value.lower())
+        except ValueError:
+            pass  # Keep existing status if invalid
+
+    # Validate customer if provided
+    if customer_id:
+        cust_result = await db.execute(
+            select(Customer).where(
+                and_(
+                    Customer.id == customer_id,
+                    Customer.tenant_id == current_user.tenant_id
+                )
+            )
+        )
+        customer = cust_result.scalar_one_or_none()
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        appointment.customer_id = customer_id
+
+    await db.commit()
+    await db.refresh(appointment)
+
+    return {
+        "id": str(appointment.id),
+        "title": appointment.title,
+        "description": appointment.description,
+        "customer_id": str(appointment.customer_id) if appointment.customer_id else None,
+        "start_time": appointment.start_time.isoformat() if appointment.start_time else None,
+        "end_time": appointment.end_time.isoformat() if appointment.end_time else None,
+        "status": appointment.status.value if appointment.status else "scheduled",
+        "location": appointment.location,
+    }
+
+
 @router.delete("/appointments/{appointment_id}")
 async def delete_portal_appointment(
     appointment_id: str,
@@ -522,9 +614,9 @@ async def create_portal_task(
         description=description,
         priority=priority_enum,
         due_date=due_date_obj,
-        status=TaskStatus.TODO,
+        status=TaskStatus.PENDING,
         assignee_id=current_user.id,
-        created_by_id=current_user.id,
+        creator_id=current_user.id,
         tenant_id=current_user.tenant_id,
     )
     db.add(task)
