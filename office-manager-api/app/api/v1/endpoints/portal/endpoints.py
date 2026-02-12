@@ -249,8 +249,8 @@ async def create_portal_appointment(
     
     # Parse dates
     try:
-        start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-        end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+        start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00")).replace(tzinfo=None)
+        end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00")).replace(tzinfo=None)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")
     
@@ -283,10 +283,8 @@ async def create_portal_appointment(
         end_time=end_dt,
         customer_id=customer_id,
         location=location,
-        notes=notes,
         status=status_enum,
         assigned_to_id=current_user.id,
-        created_by_id=current_user.id,
         tenant_id=current_user.tenant_id,
     )
     db.add(appointment)
@@ -322,7 +320,7 @@ async def update_portal_appointment(
         select(Appointment).where(
             and_(
                 Appointment.id == appointment_id,
-                Appointment.created_by_id == current_user.id
+                Appointment.assigned_to_id == current_user.id
             )
         )
     )
@@ -349,18 +347,16 @@ async def update_portal_appointment(
         appointment.description = description
     if start_time:
         try:
-            appointment.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+            appointment.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00")).replace(tzinfo=None)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid start_time format")
     if end_time:
         try:
-            appointment.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+            appointment.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00")).replace(tzinfo=None)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid end_time format")
     if location is not None:
         appointment.location = location
-    if notes is not None:
-        appointment.notes = notes
     if status_value:
         try:
             appointment.status = AppointmentStatus(status_value.lower())
@@ -413,7 +409,7 @@ async def delete_portal_appointment(
         select(Appointment).where(
             and_(
                 Appointment.id == appointment_id,
-                Appointment.created_by_id == current_user.id
+                Appointment.assigned_to_id == current_user.id
             )
         )
     )
